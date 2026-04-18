@@ -2,18 +2,15 @@
 
 import { useState } from "react";
 import { User } from "firebase/auth";
-import { schedule, getExamForDate, courseInfo, DaySchedule } from "@/data/schedule";
+import { getExamForDate, courseInfo, scheduleDates, getDateRange } from "@/data/schedule";
 import { useAppState } from "@/hooks/useLocalStorage";
 import { TaskItem } from "./TaskItem";
 import {
   formatDate,
   getMonthYear,
-  getDayOfWeek,
   getDayNumber,
   isToday,
   isPast,
-  isFuture,
-  getDateRange,
   cn,
 } from "@/lib/utils";
 
@@ -22,13 +19,13 @@ interface CalendarViewProps {
 }
 
 export function CalendarView({ user }: CalendarViewProps) {
-  const { isLoaded, toggleTask, updateNotes, updateReflection, getDayProgress, isTaskCompleted } =
+  const { isLoaded, toggleTask, updateNotes, updateReflection, getDayProgress, isTaskCompleted, getTasksForDate } =
     useAppState(user);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   // Get all dates in the range
-  const startDate = schedule[0]?.date || "2026-04-18";
-  const endDate = schedule[schedule.length - 1]?.date || "2026-05-05";
+  const startDate = scheduleDates.start;
+  const endDate = scheduleDates.end;
   const allDates = getDateRange(startDate, endDate);
 
   // Group by weeks (starting Sunday)
@@ -65,19 +62,15 @@ export function CalendarView({ user }: CalendarViewProps) {
 
   const weeks = getWeeks();
 
-  const getCompletionStats = (day: DaySchedule | undefined) => {
-    if (!day) return { completed: 0, total: 0, percentage: 0 };
-    const total = day.tasks.length;
+  const getCompletionStats = (date: string) => {
+    const tasks = getTasksForDate(date);
+    const total = tasks.length;
     if (total === 0) return { completed: 0, total: 0, percentage: 100 };
-    const completed = day.tasks.filter((task) => isTaskCompleted(task.id, day.date)).length;
+    const completed = tasks.filter((task) => isTaskCompleted(task.id, date)).length;
     return { completed, total, percentage: Math.round((completed / total) * 100) };
   };
 
-  const getDayData = (date: string) => {
-    return schedule.find((d) => d.date === date);
-  };
-
-  const selectedDay = selectedDate ? getDayData(selectedDate) : null;
+  const selectedDayTasks = selectedDate ? getTasksForDate(selectedDate) : [];
   const selectedExam = selectedDate ? getExamForDate(selectedDate) : null;
   const selectedDayProgress = selectedDate ? getDayProgress(selectedDate) : null;
 
@@ -121,8 +114,8 @@ export function CalendarView({ user }: CalendarViewProps) {
                       return <div key={`empty-${dayIndex}`} className="aspect-square" />;
                     }
 
-                    const dayData = getDayData(date);
-                    const stats = getCompletionStats(dayData);
+                    const tasks = getTasksForDate(date);
+                    const stats = getCompletionStats(date);
                     const exam = getExamForDate(date);
                     const dayIsToday = isToday(date);
                     const dayIsPast = isPast(date);
@@ -168,7 +161,7 @@ export function CalendarView({ user }: CalendarViewProps) {
                           <div className="w-2 h-2 rounded-full bg-amber-500" />
                         ) : stats.total > 0 ? (
                           <div className="flex gap-0.5">
-                            {dayData?.tasks.slice(0, 3).map((task, i) => (
+                            {tasks.slice(0, 3).map((task, i) => (
                               <div
                                 key={i}
                                 className={cn(
@@ -225,7 +218,7 @@ export function CalendarView({ user }: CalendarViewProps) {
         {/* Day Details Panel */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 bg-background-secondary border border-border rounded-2xl p-4 sm:p-6">
-            {selectedDate && selectedDay ? (
+            {selectedDate && selectedDayTasks.length > 0 ? (
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-medium text-foreground">
@@ -263,9 +256,9 @@ export function CalendarView({ user }: CalendarViewProps) {
                 )}
 
                 {/* Tasks */}
-                {selectedDay.tasks.length > 0 && (
+                {selectedDayTasks.length > 0 && (
                   <div className="space-y-2">
-                    {selectedDay.tasks.map((task) => (
+                    {selectedDayTasks.map((task) => (
                       <TaskItem
                         key={task.id}
                         task={task}
@@ -275,13 +268,6 @@ export function CalendarView({ user }: CalendarViewProps) {
                       />
                     ))}
                   </div>
-                )}
-
-                {/* No tasks */}
-                {selectedDay.tasks.length === 0 && !selectedExam && (
-                  <p className="text-sm text-foreground-muted py-4 text-center">
-                    No tasks scheduled
-                  </p>
                 )}
 
                 {/* Notes */}
@@ -312,6 +298,23 @@ export function CalendarView({ user }: CalendarViewProps) {
                       rows={2}
                     />
                   </div>
+                )}
+              </div>
+            ) : selectedDate ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-foreground">
+                  {formatDate(selectedDate)}
+                </h3>
+                {selectedExam ? (
+                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                    <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                      {selectedExam.name}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-foreground-muted py-4 text-center">
+                    No tasks scheduled
+                  </p>
                 )}
               </div>
             ) : (

@@ -1,5 +1,5 @@
 // Finals Prep Schedule - Spring 2026
-// Edit this file to update your study plan
+// Course metadata and exam info (tasks now stored in Firebase)
 
 export type Course = "CPSC 4520" | "ECE 3101" | "MENG 3323";
 
@@ -7,13 +7,8 @@ export interface Task {
   id: string;
   course: Course;
   description: string;
-}
-
-export interface DaySchedule {
-  date: string; // Format: "2026-04-18"
-  tasks: Task[];
-  isExamDay?: boolean;
-  examCourse?: Course;
+  date: string;
+  createdAt: number;
 }
 
 export interface ExamInfo {
@@ -51,150 +46,73 @@ export const exams: ExamInfo[] = [
   { course: "ECE 3101", date: "2026-05-05", name: "ECE 3101 Final" },
 ];
 
-// Helper to generate unique task IDs
-const taskId = (date: string, course: Course, index: number) =>
-  `${date}-${course.replace(/\s/g, "-")}-${index}`;
-
-// Study schedule
-export const schedule: DaySchedule[] = [
-  {
-    date: "2026-04-18",
-    tasks: [
-      { id: taskId("2026-04-18", "CPSC 4520", 0), course: "CPSC 4520", description: "Lectures 1 through 5" },
-      { id: taskId("2026-04-18", "ECE 3101", 0), course: "ECE 3101", description: "Weeks 7, 8 lecture notes" },
-      { id: taskId("2026-04-18", "MENG 3323", 0), course: "MENG 3323", description: "Lecture 16" },
-    ],
-  },
-  {
-    date: "2026-04-19",
-    tasks: [
-      { id: taskId("2026-04-19", "CPSC 4520", 0), course: "CPSC 4520", description: "Lectures 6, 7, 8" },
-      { id: taskId("2026-04-19", "ECE 3101", 0), course: "ECE 3101", description: "Weeks 9, 10" },
-    ],
-  },
-  {
-    date: "2026-04-20",
-    tasks: [
-      { id: taskId("2026-04-20", "CPSC 4520", 0), course: "CPSC 4520", description: "Lectures 9, 10" },
-    ],
-  },
-  {
-    date: "2026-04-21",
-    tasks: [
-      { id: taskId("2026-04-21", "CPSC 4520", 0), course: "CPSC 4520", description: "Lecture 11" },
-      { id: taskId("2026-04-21", "MENG 3323", 0), course: "MENG 3323", description: "Lecture 18" },
-    ],
-  },
-  {
-    date: "2026-04-22",
-    tasks: [
-      { id: taskId("2026-04-22", "CPSC 4520", 0), course: "CPSC 4520", description: "Lecture 12" },
-    ],
-  },
-  {
-    date: "2026-04-23",
-    tasks: [
-      { id: taskId("2026-04-23", "CPSC 4520", 0), course: "CPSC 4520", description: "Lectures 13, 14" },
-      { id: taskId("2026-04-23", "MENG 3323", 0), course: "MENG 3323", description: "Lecture 19" },
-    ],
-  },
-  {
-    date: "2026-04-24",
-    tasks: [
-      { id: taskId("2026-04-24", "CPSC 4520", 0), course: "CPSC 4520", description: "Lectures 15, 16" },
-      { id: taskId("2026-04-24", "ECE 3101", 0), course: "ECE 3101", description: "Weeks 1–5 lecture notes review" },
-      { id: taskId("2026-04-24", "MENG 3323", 0), course: "MENG 3323", description: "Lecture 20" },
-    ],
-  },
-  {
-    date: "2026-04-25",
-    tasks: [
-      { id: taskId("2026-04-25", "CPSC 4520", 0), course: "CPSC 4520", description: "Lectures 17, 18 + start final exam practice PDF" },
-      { id: taskId("2026-04-25", "ECE 3101", 0), course: "ECE 3101", description: "Week 6 review" },
-      { id: taskId("2026-04-25", "MENG 3323", 0), course: "MENG 3323", description: "Exam 2 weaknesses" },
-    ],
-  },
-  {
-    date: "2026-04-26",
-    tasks: [
-      { id: taskId("2026-04-26", "CPSC 4520", 0), course: "CPSC 4520", description: "Lectures 19, 20 + final exam practice PDF" },
-      { id: taskId("2026-04-26", "MENG 3323", 0), course: "MENG 3323", description: "Exam 1 + Exam 2 weaknesses (earlier psets as well)" },
-    ],
-  },
-  {
-    date: "2026-04-27",
-    tasks: [
-      { id: taskId("2026-04-27", "CPSC 4520", 0), course: "CPSC 4520", description: "Lecture 21 + Deep Learning weaknesses + revisiting Mock questions + final exam questions" },
-    ],
-  },
-  {
-    date: "2026-04-28",
-    tasks: [
-      { id: taskId("2026-04-28", "CPSC 4520", 0), course: "CPSC 4520", description: "Lecture 22 + Deep Learning weaknesses + revisiting Mock questions + final exam questions" },
-    ],
-  },
-  {
-    date: "2026-04-29",
-    tasks: [
-      { id: taskId("2026-04-29", "CPSC 4520", 0), course: "CPSC 4520", description: "Deep Learning weaknesses + revisiting Mock questions + final exam questions" },
-    ],
-  },
-  {
-    date: "2026-04-30",
-    tasks: [
-      { id: taskId("2026-04-30", "CPSC 4520", 0), course: "CPSC 4520", description: "Deep Learning weaknesses + revisiting Mock questions + final exam questions" },
-    ],
-  },
-  // TBD Days - May 1-5 (exam period)
-  {
-    date: "2026-05-01",
-    tasks: [],
-    isExamDay: true,
-    examCourse: "CPSC 4520",
-  },
-  {
-    date: "2026-05-02",
-    tasks: [
-      { id: taskId("2026-05-02", "MENG 3323", 0), course: "MENG 3323", description: "TBD — Final review" },
-      { id: taskId("2026-05-02", "ECE 3101", 0), course: "ECE 3101", description: "TBD — Final review" },
-    ],
-  },
-  {
-    date: "2026-05-03",
-    tasks: [
-      { id: taskId("2026-05-03", "MENG 3323", 0), course: "MENG 3323", description: "TBD — Final review" },
-      { id: taskId("2026-05-03", "ECE 3101", 0), course: "ECE 3101", description: "TBD — Final review" },
-    ],
-  },
-  {
-    date: "2026-05-04",
-    tasks: [],
-    isExamDay: true,
-    examCourse: "MENG 3323",
-  },
-  {
-    date: "2026-05-05",
-    tasks: [],
-    isExamDay: true,
-    examCourse: "ECE 3101",
-  },
-];
-
-// Get schedule for a specific date
-export function getScheduleForDate(date: string): DaySchedule | undefined {
-  return schedule.find((s) => s.date === date);
-}
+// Schedule date range
+export const scheduleDates = {
+  start: "2026-04-18",
+  end: "2026-05-05",
+};
 
 // Get all dates in the schedule range
-export function getScheduleDateRange(): { start: Date; end: Date } {
-  const dates = schedule.map((s) => new Date(s.date));
-  return {
-    start: new Date(Math.min(...dates.map((d) => d.getTime()))),
-    end: new Date(Math.max(...dates.map((d) => d.getTime()))),
-  };
+export function getDateRange(start: string, end: string): string[] {
+  const dates: string[] = [];
+  const current = new Date(start + "T12:00:00");
+  const endDate = new Date(end + "T12:00:00");
+
+  while (current <= endDate) {
+    dates.push(current.toISOString().split("T")[0]);
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
 }
 
 // Check if a date has an exam
 export function getExamForDate(date: string): ExamInfo | undefined {
   return exams.find((e) => e.date === date);
 }
+
+// Initial seed data for first-time setup
+export const initialTasks: Omit<Task, "id">[] = [
+  // April 18
+  { date: "2026-04-18", course: "CPSC 4520", description: "Lectures 1 through 5", createdAt: 1 },
+  { date: "2026-04-18", course: "ECE 3101", description: "Weeks 7, 8 lecture notes", createdAt: 2 },
+  { date: "2026-04-18", course: "MENG 3323", description: "Lecture 16", createdAt: 3 },
+  // April 19
+  { date: "2026-04-19", course: "CPSC 4520", description: "Lectures 6, 7, 8", createdAt: 4 },
+  { date: "2026-04-19", course: "ECE 3101", description: "Weeks 9, 10", createdAt: 5 },
+  // April 20
+  { date: "2026-04-20", course: "CPSC 4520", description: "Lectures 9, 10", createdAt: 6 },
+  // April 21
+  { date: "2026-04-21", course: "CPSC 4520", description: "Lecture 11", createdAt: 7 },
+  { date: "2026-04-21", course: "MENG 3323", description: "Lecture 18", createdAt: 8 },
+  // April 22
+  { date: "2026-04-22", course: "CPSC 4520", description: "Lecture 12", createdAt: 9 },
+  // April 23
+  { date: "2026-04-23", course: "CPSC 4520", description: "Lectures 13, 14", createdAt: 10 },
+  { date: "2026-04-23", course: "MENG 3323", description: "Lecture 19", createdAt: 11 },
+  // April 24
+  { date: "2026-04-24", course: "CPSC 4520", description: "Lectures 15, 16", createdAt: 12 },
+  { date: "2026-04-24", course: "ECE 3101", description: "Weeks 1–5 lecture notes review", createdAt: 13 },
+  { date: "2026-04-24", course: "MENG 3323", description: "Lecture 20", createdAt: 14 },
+  // April 25
+  { date: "2026-04-25", course: "CPSC 4520", description: "Lectures 17, 18 + start final exam practice PDF", createdAt: 15 },
+  { date: "2026-04-25", course: "ECE 3101", description: "Week 6 review", createdAt: 16 },
+  { date: "2026-04-25", course: "MENG 3323", description: "Exam 2 weaknesses", createdAt: 17 },
+  // April 26
+  { date: "2026-04-26", course: "CPSC 4520", description: "Lectures 19, 20 + final exam practice PDF", createdAt: 18 },
+  { date: "2026-04-26", course: "MENG 3323", description: "Exam 1 + Exam 2 weaknesses (earlier psets as well)", createdAt: 19 },
+  // April 27
+  { date: "2026-04-27", course: "CPSC 4520", description: "Lecture 21 + Deep Learning weaknesses + revisiting Mock questions + final exam questions", createdAt: 20 },
+  // April 28
+  { date: "2026-04-28", course: "CPSC 4520", description: "Lecture 22 + Deep Learning weaknesses + revisiting Mock questions + final exam questions", createdAt: 21 },
+  // April 29
+  { date: "2026-04-29", course: "CPSC 4520", description: "Deep Learning weaknesses + revisiting Mock questions + final exam questions", createdAt: 22 },
+  // April 30
+  { date: "2026-04-30", course: "CPSC 4520", description: "Deep Learning weaknesses + revisiting Mock questions + final exam questions", createdAt: 23 },
+  // May 2
+  { date: "2026-05-02", course: "MENG 3323", description: "TBD — Final review", createdAt: 24 },
+  { date: "2026-05-02", course: "ECE 3101", description: "TBD — Final review", createdAt: 25 },
+  // May 3
+  { date: "2026-05-03", course: "MENG 3323", description: "TBD — Final review", createdAt: 26 },
+  { date: "2026-05-03", course: "ECE 3101", description: "TBD — Final review", createdAt: 27 },
+];

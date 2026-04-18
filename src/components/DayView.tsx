@@ -2,8 +2,8 @@
 
 import { useRef, useEffect, useState } from "react";
 import { User } from "firebase/auth";
-import { schedule, getExamForDate, courseInfo, DaySchedule, Task, Course } from "@/data/schedule";
-import { useAppState, CustomTask } from "@/hooks/useLocalStorage";
+import { getExamForDate, courseInfo, Task, scheduleDates, getDateRange } from "@/data/schedule";
+import { useAppState, getAllScheduleDates } from "@/hooks/useLocalStorage";
 import { TaskItem } from "./TaskItem";
 import { TaskModal } from "./TaskModal";
 import { BookIcon, PencilIcon, SparklesIcon, MoonIcon, FireIcon, TrophyIcon } from "./Icons";
@@ -21,6 +21,9 @@ interface DayViewProps {
   user: User;
 }
 
+// Generate schedule array from dates
+const scheduleDatesArray = getAllScheduleDates();
+
 export function DayView({ user }: DayViewProps) {
   const {
     isLoaded,
@@ -29,12 +32,12 @@ export function DayView({ user }: DayViewProps) {
     updateReflection,
     getDayProgress,
     isTaskCompleted,
-    addCustomTask,
-    updateCustomTask,
-    deleteCustomTask,
-    rescheduleCustomTask,
-    getCustomTasksForDate,
-    getCustomTaskById,
+    addTask,
+    updateTask,
+    deleteTask,
+    rescheduleTask,
+    getTasksForDate,
+    getTaskById,
   } = useAppState(user);
 
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -49,12 +52,12 @@ export function DayView({ user }: DayViewProps) {
   // Find today's index or closest future day
   useEffect(() => {
     if (!isLoaded) return;
-    const todayIndex = schedule.findIndex((day) => isToday(day.date));
+    const todayIndex = scheduleDatesArray.findIndex((date) => isToday(date));
     if (todayIndex >= 0) {
       setSelectedIndex(todayIndex);
     } else {
-      const futureIndex = schedule.findIndex((day) => isFuture(day.date));
-      setSelectedIndex(futureIndex >= 0 ? futureIndex : schedule.length - 1);
+      const futureIndex = scheduleDatesArray.findIndex((date) => isFuture(date));
+      setSelectedIndex(futureIndex >= 0 ? futureIndex : scheduleDatesArray.length - 1);
     }
   }, [isLoaded]);
 
@@ -66,22 +69,16 @@ export function DayView({ user }: DayViewProps) {
     }
   }, [selectedIndex]);
 
-  const selectedDay = schedule[selectedIndex];
-  const exam = selectedDay ? getExamForDate(selectedDay.date) : undefined;
-  const dayProgress = selectedDay ? getDayProgress(selectedDay.date) : null;
-  const customTasks = selectedDay ? getCustomTasksForDate(selectedDay.date) : [];
+  const selectedDate = scheduleDatesArray[selectedIndex];
+  const exam = selectedDate ? getExamForDate(selectedDate) : undefined;
+  const dayProgress = selectedDate ? getDayProgress(selectedDate) : null;
+  const tasks = selectedDate ? getTasksForDate(selectedDate) : [];
 
-  // Combine schedule tasks with custom tasks
-  const allTasks: (Task | CustomTask)[] = [
-    ...(selectedDay?.tasks || []),
-    ...customTasks,
-  ];
-
-  const getCompletionStats = (day: DaySchedule, customTasksForDay: CustomTask[]) => {
-    const allTasksForDay = [...day.tasks, ...customTasksForDay];
-    const total = allTasksForDay.length;
+  const getCompletionStats = (date: string) => {
+    const tasksForDay = getTasksForDate(date);
+    const total = tasksForDay.length;
     if (total === 0) return { completed: 0, total: 0, percentage: 100 };
-    const completed = allTasksForDay.filter((task) => isTaskCompleted(task.id, day.date)).length;
+    const completed = tasksForDay.filter((task) => isTaskCompleted(task.id, date)).length;
     return { completed, total, percentage: Math.round((completed / total) * 100) };
   };
 
@@ -97,27 +94,27 @@ export function DayView({ user }: DayViewProps) {
     setModalOpen(true);
   };
 
-  const handleSaveTask = (task: Omit<Task, "id">, date: string) => {
+  const handleSaveTask = (task: Omit<Task, "id" | "createdAt">, date: string) => {
     if (modalMode === "create") {
-      addCustomTask({ ...task, date });
+      addTask({ ...task, date });
     } else if (editingTaskId) {
-      updateCustomTask(editingTaskId, { ...task, date });
+      updateTask(editingTaskId, { ...task, date });
     }
   };
 
   const handleDeleteTask = () => {
     if (editingTaskId) {
-      deleteCustomTask(editingTaskId);
+      deleteTask(editingTaskId);
     }
   };
 
   const handleRescheduleTask = (newDate: string) => {
     if (editingTaskId) {
-      rescheduleCustomTask(editingTaskId, newDate);
+      rescheduleTask(editingTaskId, newDate);
     }
   };
 
-  const editingTask = editingTaskId ? getCustomTaskById(editingTaskId) : undefined;
+  const editingTask = editingTaskId ? getTaskById(editingTaskId) : undefined;
 
   if (!isLoaded) {
     return (
@@ -135,17 +132,16 @@ export function DayView({ user }: DayViewProps) {
           ref={scrollContainerRef}
           className="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4 sm:-mx-6 sm:px-6 scrollbar-hide"
         >
-          {schedule.map((day, index) => {
-            const customTasksForDay = getCustomTasksForDate(day.date);
-            const stats = getCompletionStats(day, customTasksForDay);
-            const dayIsToday = isToday(day.date);
-            const dayIsPast = isPast(day.date);
-            const hasExam = getExamForDate(day.date);
+          {scheduleDatesArray.map((date, index) => {
+            const stats = getCompletionStats(date);
+            const dayIsToday = isToday(date);
+            const dayIsPast = isPast(date);
+            const hasExam = getExamForDate(date);
             const isSelected = index === selectedIndex;
 
             return (
               <button
-                key={day.date}
+                key={date}
                 ref={(el) => { dayRefs.current[index] = el; }}
                 onClick={() => setSelectedIndex(index)}
                 className={cn(
@@ -169,7 +165,7 @@ export function DayView({ user }: DayViewProps) {
                     isSelected ? "text-cpsc" : "text-foreground-muted"
                   )}
                 >
-                  {formatDateShort(day.date).split(" ")[0]}
+                  {formatDateShort(date).split(" ")[0]}
                 </span>
                 <span
                   className={cn(
@@ -185,7 +181,7 @@ export function DayView({ user }: DayViewProps) {
                       : "text-foreground-secondary"
                   )}
                 >
-                  {new Date(day.date + "T12:00:00").getDate()}
+                  {new Date(date + "T12:00:00").getDate()}
                 </span>
                 {hasExam ? (
                   <span className="flex items-center gap-0.5 text-[9px] font-medium text-exam">
@@ -218,24 +214,24 @@ export function DayView({ user }: DayViewProps) {
       </div>
 
       {/* Selected Day Details */}
-      {selectedDay && (
+      {selectedDate && (
         <div className="space-y-6">
           {/* Day Header */}
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-medium text-foreground">{formatDate(selectedDay.date)}</h2>
-                {isToday(selectedDay.date) && (
+                <h2 className="text-2xl font-medium text-foreground">{formatDate(selectedDate)}</h2>
+                {isToday(selectedDate) && (
                   <span className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg bg-cpsc/10 text-cpsc">
                     <SparklesIcon className="w-3 h-3" />
                     Today
                   </span>
                 )}
               </div>
-              <p className="text-foreground-muted mt-1">{getRelativeDate(selectedDay.date)}</p>
+              <p className="text-foreground-muted mt-1">{getRelativeDate(selectedDate)}</p>
             </div>
             {(() => {
-              const stats = getCompletionStats(selectedDay, customTasks);
+              const stats = getCompletionStats(selectedDate);
               return (
                 <div className="flex items-center gap-3">
                   {stats.total > 0 && (
@@ -282,36 +278,33 @@ export function DayView({ user }: DayViewProps) {
           )}
 
           {/* Tasks */}
-          {allTasks.length > 0 && (
+          {tasks.length > 0 && (
             <div className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-medium text-foreground-muted uppercase tracking-wider">
                 <BookIcon className="w-4 h-4" />
                 Study Tasks
               </h3>
               <div className="space-y-2">
-                {allTasks.map((task) => {
-                  const isCustom = task.id.startsWith("custom-");
-                  return (
-                    <div
-                      key={task.id}
-                      className={cn(isCustom && "cursor-pointer")}
-                      onClick={() => isCustom && openEditModal(task.id)}
-                    >
-                      <TaskItem
-                        task={task}
-                        isCompleted={isTaskCompleted(task.id, selectedDay.date)}
-                        isOverdue={isPast(selectedDay.date) && !isTaskCompleted(task.id, selectedDay.date)}
-                        onToggle={() => toggleTask(task.id, selectedDay.date)}
-                      />
-                    </div>
-                  );
-                })}
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="cursor-pointer"
+                    onClick={() => openEditModal(task.id)}
+                  >
+                    <TaskItem
+                      task={task}
+                      isCompleted={isTaskCompleted(task.id, selectedDate)}
+                      isOverdue={isPast(selectedDate) && !isTaskCompleted(task.id, selectedDate)}
+                      onToggle={() => toggleTask(task.id, selectedDate)}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* No tasks */}
-          {allTasks.length === 0 && !exam && (
+          {tasks.length === 0 && !exam && (
             <div className="text-center py-16">
               <MoonIcon className="w-12 h-12 mx-auto mb-4 text-foreground-muted/40" />
               <p className="text-lg font-medium text-foreground-muted">Rest day</p>
@@ -336,7 +329,7 @@ export function DayView({ user }: DayViewProps) {
             </h3>
             <textarea
               value={dayProgress?.notes || ""}
-              onChange={(e) => updateNotes(selectedDay.date, e.target.value)}
+              onChange={(e) => updateNotes(selectedDate, e.target.value)}
               placeholder="Add notes for this day..."
               className="w-full px-4 py-3 bg-background-secondary/60 border border-border/50 rounded-xl text-foreground placeholder:text-foreground-muted/60 resize-none focus:border-cpsc/50 focus:bg-background-secondary"
               rows={3}
@@ -344,7 +337,7 @@ export function DayView({ user }: DayViewProps) {
           </div>
 
           {/* Reflection Section (for past days) */}
-          {isPast(selectedDay.date) && (
+          {isPast(selectedDate) && (
             <div className="space-y-3">
               <h3 className="flex items-center gap-2 text-sm font-medium text-foreground-muted uppercase tracking-wider">
                 <SparklesIcon className="w-4 h-4" />
@@ -352,7 +345,7 @@ export function DayView({ user }: DayViewProps) {
               </h3>
               <textarea
                 value={dayProgress?.reflection || ""}
-                onChange={(e) => updateReflection(selectedDay.date, e.target.value)}
+                onChange={(e) => updateReflection(selectedDate, e.target.value)}
                 placeholder="What went well? What could be improved?"
                 className="w-full px-4 py-3 bg-background-secondary/60 border border-border/50 rounded-xl text-foreground placeholder:text-foreground-muted/60 resize-none focus:border-cpsc/50 focus:bg-background-secondary"
                 rows={3}
@@ -369,8 +362,8 @@ export function DayView({ user }: DayViewProps) {
         onSave={handleSaveTask}
         onDelete={modalMode === "edit" ? handleDeleteTask : undefined}
         onReschedule={modalMode === "edit" ? handleRescheduleTask : undefined}
-        initialTask={editingTask ? { id: editingTask.id, course: editingTask.course, description: editingTask.description } : undefined}
-        initialDate={editingTask?.date || selectedDay?.date || ""}
+        initialTask={editingTask}
+        initialDate={editingTask?.date || selectedDate || ""}
         mode={modalMode}
       />
     </div>

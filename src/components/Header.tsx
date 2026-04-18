@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -8,11 +9,13 @@ import { BookIcon, CalendarIcon, SunIcon, MoonIcon, MonitorIcon, SparklesIcon } 
 interface HeaderProps {
   activeView: "calendar" | "today";
   onViewChange: (view: "calendar" | "today") => void;
+  onReseed?: () => void;
 }
 
-export function Header({ activeView, onViewChange }: HeaderProps) {
+export function Header({ activeView, onViewChange, onReseed }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b border-border/50">
@@ -104,25 +107,58 @@ export function Header({ activeView, onViewChange }: HeaderProps) {
 
             {/* User Menu */}
             {user && (
-              <div className="flex items-center gap-2">
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || "User"}
-                    referrerPolicy="no-referrer"
-                    className="w-8 h-8 rounded-full border border-border object-cover"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-cpsc/20 flex items-center justify-center text-cpsc text-sm font-medium">
-                    {user.email?.[0].toUpperCase()}
-                  </div>
-                )}
+              <div className="relative">
                 <button
-                  onClick={signOut}
-                  className="text-xs text-foreground-muted hover:text-foreground transition-colors"
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="flex items-center gap-2"
                 >
-                  Sign out
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || "User"}
+                      referrerPolicy="no-referrer"
+                      className="w-8 h-8 rounded-full border border-border object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-cpsc/20 flex items-center justify-center text-cpsc text-sm font-medium">
+                      {user.email?.[0].toUpperCase()}
+                    </div>
+                  )}
                 </button>
+
+                {/* Dropdown Menu */}
+                {showMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowMenu(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-48 py-2 bg-background border border-border rounded-xl shadow-lg z-20">
+                      {onReseed && (
+                        <button
+                          onClick={() => {
+                            if (confirm("This will reset all tasks to the original schedule. Continue?")) {
+                              onReseed();
+                            }
+                            setShowMenu(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-foreground-secondary hover:bg-background-secondary hover:text-foreground transition-colors"
+                        >
+                          Reset to Default
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          signOut();
+                          setShowMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-foreground-secondary hover:bg-background-secondary hover:text-foreground transition-colors"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

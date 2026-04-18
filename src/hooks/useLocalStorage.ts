@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { doc, setDoc, onSnapshot, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { User } from "firebase/auth";
-import { Task, Course } from "@/data/schedule";
+import { Task, Course, initialTasks, scheduleDates, getDateRange } from "@/data/schedule";
 
 // Types for our app state
 export interface DayProgress {
@@ -13,24 +13,18 @@ export interface DayProgress {
   reflection: string; // What went well / not well
 }
 
-export interface CustomTask {
-  id: string;
-  course: Course;
-  description: string;
-  date: string;
-  createdAt: number;
-}
-
 export interface AppState {
   days: Record<string, DayProgress>;
-  customTasks: CustomTask[];
+  tasks: Task[]; // All tasks stored in Firebase
   theme: "light" | "dark" | "system";
+  seeded: boolean; // Whether initial data has been seeded
 }
 
 const initialAppState: AppState = {
   days: {},
-  customTasks: [],
+  tasks: [],
   theme: "system",
+  seeded: false,
 };
 
 // Debounce helper
@@ -47,7 +41,12 @@ function debounce<Args extends unknown[]>(
 
 // Generate unique ID
 function generateId(): string {
-  return `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Get all dates in schedule
+export function getAllScheduleDates(): string[] {
+  return getDateRange(scheduleDates.start, scheduleDates.end);
 }
 
 export function useAppState(user: User | null) {
@@ -64,13 +63,9 @@ export function useAppState(user: User | null) {
 
       // Load from localStorage first for immediate display
       try {
-        const localData = localStorage.getItem("finals-prep-state");
+        const localData = localStorage.getItem("finals-prep-state-v2");
         if (localData) {
           const parsed = JSON.parse(localData);
-          // Ensure customTasks exists (migration)
-          if (!parsed.customTasks) {
-            parsed.customTasks = [];
-          }
           setState(parsed);
         }
       } catch (e) {
@@ -85,22 +80,27 @@ export function useAppState(user: User | null) {
           const docSnap = await getDoc(userDocRef);
           if (docSnap.exists()) {
             const firestoreData = docSnap.data() as AppState;
-            // Ensure customTasks exists (migration)
-            if (!firestoreData.customTasks) {
-              firestoreData.customTasks = [];
+            // Migration: ensure tasks array exists
+            if (!firestoreData.tasks) {
+              firestoreData.tasks = [];
             }
             setState(firestoreData);
-            localStorage.setItem("finals-prep-state", JSON.stringify(firestoreData));
+            localStorage.setItem("finals-prep-state-v2", JSON.stringify(firestoreData));
           } else {
-            // If no Firestore data, upload localStorage data
-            const localData = localStorage.getItem("finals-prep-state");
-            if (localData) {
-              const parsed = JSON.parse(localData);
-              if (!parsed.customTasks) {
-                parsed.customTasks = [];
-              }
-              await setDoc(userDocRef, parsed);
-            }
+            // First time user - seed with initial data
+            const seededState: AppState = {
+              days: {},
+              tasks: initialTasks.map((task, index) => ({
+                ...task,
+                id: generateId() + `-${index}`,
+                createdAt: Date.now() + index,
+              })),
+              theme: "system",
+              seeded: true,
+            };
+            await setDoc(userDocRef, seededState);
+            setState(seededState);
+            localStorage.setItem("finals-prep-state-v2", JSON.stringify(seededState));
           }
         } catch (e) {
           console.warn("Failed to sync with Firestore:", e);
@@ -112,11 +112,11 @@ export function useAppState(user: User | null) {
           (docSnap) => {
             if (docSnap.exists() && !skipNextSync.current) {
               const data = docSnap.data() as AppState;
-              if (!data.customTasks) {
-                data.customTasks = [];
+              if (!data.tasks) {
+                data.tasks = [];
               }
               setState(data);
-              localStorage.setItem("finals-prep-state", JSON.stringify(data));
+              localStorage.setItem("finals-prep-state-v2", JSON.stringify(data));
             }
             skipNextSync.current = false;
           },
@@ -160,7 +160,7 @@ export function useAppState(user: User | null) {
     (updater: (prev: AppState) => AppState) => {
       setState((prev) => {
         const newState = updater(prev);
-        localStorage.setItem("finals-prep-state", JSON.stringify(newState));
+        localStorage.setItem("finals-prep-state-v2", JSON.stringify(newState));
         syncToFirestore(newState, user);
         return newState;
       });
@@ -250,13 +250,13 @@ export function useAppState(user: User | null) {
     [state.days]
   );
 
-  // Custom task CRUD
-  const addCustomTask = useCallback(
-    (task: Omit<CustomTask, "id" | "createdAt">) => {
+  // Task CRUD - now works for ALL tasks
+  const addTask = useCallback(
+    (task: Omit<Task, "id" | "createdAt">) => {
       updateState((prev) => ({
         ...prev,
-        customTasks: [
-          ...prev.customTasks,
+        tasks: [
+          ...prev.tasks,
           {
             ...task,
             id: generateId(),
@@ -268,11 +268,11 @@ export function useAppState(user: User | null) {
     [updateState]
   );
 
-  const updateCustomTask = useCallback(
-    (taskId: string, updates: Partial<Omit<CustomTask, "id" | "createdAt">>) => {
+  const updateTask = useCallback(
+    (taskId: string, updates: Partial<Omit<Task, "id" | "createdAt">>) => {
       updateState((prev) => ({
         ...prev,
-        customTasks: prev.customTasks.map((task) =>
+        tasks: prev.tasks.map((task) =>
           task.id === taskId ? { ...task, ...updates } : task
         ),
       }));
@@ -280,11 +280,11 @@ export function useAppState(user: User | null) {
     [updateState]
   );
 
-  const deleteCustomTask = useCallback(
+  const deleteTask = useCallback(
     (taskId: string) => {
       updateState((prev) => ({
         ...prev,
-        customTasks: prev.customTasks.filter((task) => task.id !== taskId),
+        tasks: prev.tasks.filter((task) => task.id !== taskId),
         // Also remove from completedTasks
         days: Object.fromEntries(
           Object.entries(prev.days).map(([date, progress]) => [
@@ -300,20 +300,20 @@ export function useAppState(user: User | null) {
     [updateState]
   );
 
-  const rescheduleCustomTask = useCallback(
+  const rescheduleTask = useCallback(
     (taskId: string, newDate: string) => {
       updateState((prev) => {
-        const task = prev.customTasks.find((t) => t.id === taskId);
+        const task = prev.tasks.find((t) => t.id === taskId);
         if (!task) return prev;
 
         const oldDate = task.date;
 
         return {
           ...prev,
-          customTasks: prev.customTasks.map((t) =>
+          tasks: prev.tasks.map((t) =>
             t.id === taskId ? { ...t, date: newDate } : t
           ),
-          // Move completion status to new date if it was completed
+          // Remove completion status when rescheduling
           days: {
             ...prev.days,
             [oldDate]: prev.days[oldDate]
@@ -329,19 +329,35 @@ export function useAppState(user: User | null) {
     [updateState]
   );
 
-  const getCustomTasksForDate = useCallback(
-    (date: string): CustomTask[] => {
-      return state.customTasks.filter((task) => task.date === date);
+  const getTasksForDate = useCallback(
+    (date: string): Task[] => {
+      return state.tasks
+        .filter((task) => task.date === date)
+        .sort((a, b) => a.createdAt - b.createdAt);
     },
-    [state.customTasks]
+    [state.tasks]
   );
 
-  const getCustomTaskById = useCallback(
-    (taskId: string): CustomTask | undefined => {
-      return state.customTasks.find((task) => task.id === taskId);
+  const getTaskById = useCallback(
+    (taskId: string): Task | undefined => {
+      return state.tasks.find((task) => task.id === taskId);
     },
-    [state.customTasks]
+    [state.tasks]
   );
+
+  // Reseed data (for reset functionality)
+  const reseedData = useCallback(() => {
+    updateState((prev) => ({
+      ...prev,
+      tasks: initialTasks.map((task, index) => ({
+        ...task,
+        id: generateId() + `-${index}`,
+        createdAt: Date.now() + index,
+      })),
+      days: {}, // Clear all progress
+      seeded: true,
+    }));
+  }, [updateState]);
 
   return {
     state,
@@ -352,12 +368,14 @@ export function useAppState(user: User | null) {
     setTheme,
     getDayProgress,
     isTaskCompleted,
-    // Custom task methods
-    addCustomTask,
-    updateCustomTask,
-    deleteCustomTask,
-    rescheduleCustomTask,
-    getCustomTasksForDate,
-    getCustomTaskById,
+    // Task methods (unified - all tasks are editable now)
+    addTask,
+    updateTask,
+    deleteTask,
+    rescheduleTask,
+    getTasksForDate,
+    getTaskById,
+    reseedData,
+    allTasks: state.tasks,
   };
 }

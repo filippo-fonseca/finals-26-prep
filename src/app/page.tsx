@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { User } from "firebase/auth";
 import { useAuth } from "@/hooks/useAuth";
+import { useAppState } from "@/hooks/useLocalStorage";
 import { LoginPage } from "@/components/LoginPage";
 import { Header } from "@/components/Header";
 import { DayView } from "@/components/DayView";
@@ -10,26 +12,10 @@ import { exams, courseInfo } from "@/data/schedule";
 import { getDaysUntil, cn } from "@/lib/utils";
 import { CourseIcon, FireIcon, AlertIcon, TrophyIcon } from "@/components/Icons";
 
-export default function Home() {
-  const { user, isLoading } = useAuth();
+// Inner component that has access to useAppState
+function AuthenticatedApp({ user }: { user: User }) {
   const [activeView, setActiveView] = useState<"calendar" | "today">("today");
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-cpsc border-t-transparent rounded-full animate-spin" />
-          <p className="text-foreground-muted text-sm">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Not authenticated - show login
-  if (!user) {
-    return <LoginPage onSignIn={() => {}} />;
-  }
+  const { reseedData } = useAppState(user);
 
   // Get upcoming exams
   const upcomingExams = exams
@@ -42,7 +28,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header activeView={activeView} onViewChange={setActiveView} />
+      <Header activeView={activeView} onViewChange={setActiveView} onReseed={reseedData} />
 
       {/* Exam Countdown Banner */}
       {upcomingExams.length > 0 && (
@@ -134,4 +120,27 @@ export default function Home() {
       </footer>
     </div>
   );
+}
+
+export default function Home() {
+  const { user, isLoading } = useAuth();
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-cpsc border-t-transparent rounded-full animate-spin" />
+          <p className="text-foreground-muted text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated - show login
+  if (!user) {
+    return <LoginPage onSignIn={() => {}} />;
+  }
+
+  return <AuthenticatedApp user={user} />;
 }

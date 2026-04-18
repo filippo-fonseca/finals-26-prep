@@ -8,7 +8,7 @@ import { CourseIcon } from "./Icons";
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (task: Omit<Task, "id">, date: string) => void;
+  onSave: (task: Omit<Task, "id" | "createdAt">, date: string) => void;
   onDelete?: () => void;
   onReschedule?: (newDate: string) => void;
   initialTask?: Task;
@@ -31,14 +31,12 @@ export function TaskModal({
   const [course, setCourse] = useState<Course>(initialTask?.course || "CPSC 4520");
   const [description, setDescription] = useState(initialTask?.description || "");
   const [date, setDate] = useState(initialDate);
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setCourse(initialTask?.course || "CPSC 4520");
       setDescription(initialTask?.description || "");
-      setDate(initialDate);
-      setShowDatePicker(false);
+      setDate(initialTask?.date || initialDate);
     }
   }, [isOpen, initialTask, initialDate]);
 
@@ -46,12 +44,13 @@ export function TaskModal({
 
   const handleSave = () => {
     if (!description.trim()) return;
-    onSave({ course, description: description.trim() }, date);
+    onSave({ course, description: description.trim(), date }, date);
     onClose();
   };
 
   const handleRescheduleToTomorrow = () => {
-    const tomorrow = new Date(date + "T12:00:00");
+    const currentDate = initialTask?.date || date;
+    const tomorrow = new Date(currentDate + "T12:00:00");
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
     onReschedule?.(tomorrowStr);
@@ -59,7 +58,8 @@ export function TaskModal({
   };
 
   const handleRescheduleToDate = () => {
-    if (date !== initialDate) {
+    const originalDate = initialTask?.date || initialDate;
+    if (date !== originalDate) {
       onReschedule?.(date);
       onClose();
     }
@@ -153,7 +153,7 @@ export function TaskModal({
                 >
                   Move to Tomorrow
                 </button>
-                {date !== initialDate && (
+                {date !== (initialTask?.date || initialDate) && (
                   <button
                     onClick={handleRescheduleToDate}
                     className="flex-1 px-3 py-2 rounded-xl bg-cpsc/10 border border-cpsc/20 text-cpsc text-sm font-medium hover:bg-cpsc/20 transition-colors"

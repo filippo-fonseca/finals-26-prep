@@ -5,7 +5,16 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Finals Prep - Spring 2026",
-  description: "Yale finals prep calendar and study tracker",
+  description: "A minimal, zen-inspired study tracker for finals season at Yale",
+  icons: {
+    icon: "/favicon.svg",
+  },
+  authors: [{ name: "Filippo Fonseca", url: "https://filippofonseca.com" }],
+  openGraph: {
+    title: "Finals Prep - Spring 2026",
+    description: "A minimal, zen-inspired study tracker for finals season at Yale",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -16,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
