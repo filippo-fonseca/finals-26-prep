@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { doc, setDoc, onSnapshot, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { User } from "firebase/auth";
-import { Task, Course, initialTasks, scheduleDates, getDateRange } from "@/data/schedule";
+import { Task, Course, TaskStatus, Subtask, initialTasks, scheduleDates, getDateRange } from "@/data/schedule";
 
 // Types for our app state
 export interface DayProgress {
@@ -44,6 +44,20 @@ function generateId(): string {
   return `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Generate unique subtask ID
+function generateSubtaskId(): string {
+  return `subtask-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Migrate task to include new fields (status and subtasks)
+function migrateTask(task: Partial<Task> & { id: string; course: Course; description: string; date: string; createdAt: number }): Task {
+  return {
+    ...task,
+    status: task.status || "Not started",
+    subtasks: task.subtasks || [],
+  };
+}
+
 // Get all dates in schedule
 export function getAllScheduleDates(): string[] {
   return getDateRange(scheduleDates.start, scheduleDates.end);
@@ -80,10 +94,12 @@ export function useAppState(user: User | null) {
           const docSnap = await getDoc(userDocRef);
           if (docSnap.exists()) {
             const firestoreData = docSnap.data() as AppState;
-            // Migration: ensure tasks array exists
+            // Migration: ensure tasks array exists and migrate task fields
             if (!firestoreData.tasks) {
               firestoreData.tasks = [];
             }
+            // Migrate tasks to include status and subtasks if missing
+            firestoreData.tasks = firestoreData.tasks.map(migrateTask);
             setState(firestoreData);
             localStorage.setItem("finals-prep-state-v2", JSON.stringify(firestoreData));
           } else {
@@ -115,6 +131,8 @@ export function useAppState(user: User | null) {
               if (!data.tasks) {
                 data.tasks = [];
               }
+              // Migrate tasks to include status and subtasks if missing
+              data.tasks = data.tasks.map(migrateTask);
               setState(data);
               localStorage.setItem("finals-prep-state-v2", JSON.stringify(data));
             }
@@ -252,7 +270,7 @@ export function useAppState(user: User | null) {
 
   // Task CRUD - now works for ALL tasks
   const addTask = useCallback(
-    (task: Omit<Task, "id" | "createdAt">) => {
+    (task: Omit<Task, "id" | "createdAt" | "status" | "subtasks"> & { status?: TaskStatus; subtasks?: Subtask[] }) => {
       updateState((prev) => ({
         ...prev,
         tasks: [
@@ -261,6 +279,8 @@ export function useAppState(user: User | null) {
             ...task,
             id: generateId(),
             createdAt: Date.now(),
+            status: task.status || "Not started",
+            subtasks: task.subtasks || [],
           },
         ],
       }));
@@ -345,6 +365,110 @@ export function useAppState(user: User | null) {
     [state.tasks]
   );
 
+  // Update task status
+  const updateTaskStatus = useCallback(
+    (taskId: string, status: TaskStatus) => {
+      updateState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((task) =>
+          task.id === taskId ? { ...task, status } : task
+        ),
+      }));
+    },
+    [updateState]
+  );
+
+  // Subtask CRUD operations
+  const addSubtask = useCallback(
+    (taskId: string, description: string) => {
+      updateState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                subtasks: [
+                  ...task.subtasks,
+                  {
+                    id: generateSubtaskId(),
+                    description,
+                    completed: false,
+                    createdAt: Date.now(),
+                  },
+                ],
+              }
+            : task
+        ),
+      }));
+    },
+    [updateState]
+  );
+
+  const updateSubtask = useCallback(
+    (taskId: string, subtaskId: string, description: string) => {
+      updateState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                subtasks: task.subtasks.map((st) =>
+                  st.id === subtaskId ? { ...st, description } : st
+                ),
+              }
+            : task
+        ),
+      }));
+    },
+    [updateState]
+  );
+
+  const deleteSubtask = useCallback(
+    (taskId: string, subtaskId: string) => {
+      updateState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                subtasks: task.subtasks.filter((st) => st.id !== subtaskId),
+              }
+            : task
+        ),
+      }));
+    },
+    [updateState]
+  );
+
+  const toggleSubtask = useCallback(
+    (taskId: string, subtaskId: string) => {
+      updateState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                subtasks: task.subtasks.map((st) =>
+                  st.id === subtaskId ? { ...st, completed: !st.completed } : st
+                ),
+              }
+            : task
+        ),
+      }));
+    },
+    [updateState]
+  );
+
+  const getSubtaskProgress = useCallback(
+    (taskId: string): { completed: number; total: number } => {
+      const task = state.tasks.find((t) => t.id === taskId);
+      if (!task || task.subtasks.length === 0) return { completed: 0, total: 0 };
+      const completed = task.subtasks.filter((st) => st.completed).length;
+      return { completed, total: task.subtasks.length };
+    },
+    [state.tasks]
+  );
+
   // Reseed data (for reset functionality)
   const reseedData = useCallback(() => {
     updateState((prev) => ({
@@ -377,5 +501,12 @@ export function useAppState(user: User | null) {
     getTaskById,
     reseedData,
     allTasks: state.tasks,
+    // Status and subtask methods
+    updateTaskStatus,
+    addSubtask,
+    updateSubtask,
+    deleteSubtask,
+    toggleSubtask,
+    getSubtaskProgress,
   };
 }

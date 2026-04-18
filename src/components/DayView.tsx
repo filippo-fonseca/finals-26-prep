@@ -38,6 +38,11 @@ export function DayView({ user }: DayViewProps) {
     rescheduleTask,
     getTasksForDate,
     getTaskById,
+    updateTaskStatus,
+    addSubtask,
+    updateSubtask,
+    deleteSubtask,
+    toggleSubtask,
   } = useAppState(user);
 
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -286,18 +291,16 @@ export function DayView({ user }: DayViewProps) {
               </h3>
               <div className="space-y-2">
                 {tasks.map((task) => (
-                  <div
+                  <TaskItem
                     key={task.id}
-                    className="cursor-pointer"
-                    onClick={() => openEditModal(task.id)}
-                  >
-                    <TaskItem
-                      task={task}
-                      isCompleted={isTaskCompleted(task.id, selectedDate)}
-                      isOverdue={isPast(selectedDate) && !isTaskCompleted(task.id, selectedDate)}
-                      onToggle={() => toggleTask(task.id, selectedDate)}
-                    />
-                  </div>
+                    task={task}
+                    isCompleted={isTaskCompleted(task.id, selectedDate)}
+                    isOverdue={isPast(selectedDate) && !isTaskCompleted(task.id, selectedDate)}
+                    onToggle={() => toggleTask(task.id, selectedDate)}
+                    onToggleSubtask={(subtaskId) => toggleSubtask(task.id, subtaskId)}
+                    onAddSubtask={(description) => addSubtask(task.id, description)}
+                    onEditTask={() => openEditModal(task.id)}
+                  />
                 ))}
               </div>
             </div>
@@ -362,6 +365,11 @@ export function DayView({ user }: DayViewProps) {
         onSave={handleSaveTask}
         onDelete={modalMode === "edit" ? handleDeleteTask : undefined}
         onReschedule={modalMode === "edit" ? handleRescheduleTask : undefined}
+        onAddSubtask={editingTaskId ? (desc) => addSubtask(editingTaskId, desc) : undefined}
+        onUpdateSubtask={editingTaskId ? (subtaskId, desc) => updateSubtask(editingTaskId, subtaskId, desc) : undefined}
+        onDeleteSubtask={editingTaskId ? (subtaskId) => deleteSubtask(editingTaskId, subtaskId) : undefined}
+        onToggleSubtask={editingTaskId ? (subtaskId) => toggleSubtask(editingTaskId, subtaskId) : undefined}
+        onUpdateStatus={editingTaskId ? (status) => updateTaskStatus(editingTaskId, status) : undefined}
         initialTask={editingTask}
         initialDate={editingTask?.date || selectedDate || ""}
         mode={modalMode}

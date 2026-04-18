@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { User } from "firebase/auth";
 import { getExamForDate, courseInfo, scheduleDates, getDateRange } from "@/data/schedule";
 import { useAppState } from "@/hooks/useLocalStorage";
@@ -11,6 +11,7 @@ import {
   getDayNumber,
   isToday,
   isPast,
+  isFuture,
   cn,
 } from "@/lib/utils";
 
@@ -18,10 +19,29 @@ interface CalendarViewProps {
   user: User;
 }
 
+// Get today's date or closest date in schedule range
+function getDefaultSelectedDate(): string {
+  const today = new Date().toISOString().split("T")[0];
+  const allDates = getDateRange(scheduleDates.start, scheduleDates.end);
+
+  // If today is in range, use it
+  if (allDates.includes(today)) {
+    return today;
+  }
+
+  // If today is before the range, use start
+  if (today < scheduleDates.start) {
+    return scheduleDates.start;
+  }
+
+  // If today is after the range, use end
+  return scheduleDates.end;
+}
+
 export function CalendarView({ user }: CalendarViewProps) {
-  const { isLoaded, toggleTask, updateNotes, updateReflection, getDayProgress, isTaskCompleted, getTasksForDate } =
+  const { isLoaded, toggleTask, updateNotes, updateReflection, getDayProgress, isTaskCompleted, getTasksForDate, toggleSubtask, addSubtask } =
     useAppState(user);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(getDefaultSelectedDate);
 
   // Get all dates in the range
   const startDate = scheduleDates.start;
@@ -265,6 +285,8 @@ export function CalendarView({ user }: CalendarViewProps) {
                         isCompleted={isTaskCompleted(task.id, selectedDate)}
                         isOverdue={isPast(selectedDate) && !isTaskCompleted(task.id, selectedDate)}
                         onToggle={() => toggleTask(task.id, selectedDate)}
+                        onToggleSubtask={(subtaskId) => toggleSubtask(task.id, subtaskId)}
+                        onAddSubtask={(description) => addSubtask(task.id, description)}
                       />
                     ))}
                   </div>
