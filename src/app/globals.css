@@ -1,0 +1,336 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Louize';
+  src: url('/fonts/louize-regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Louize';
+  src: url('/fonts/louize-medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Light mode - soft warm tones */
+  --background: #fdfcfb;
+  --background-secondary: #f8f7f5;
+  --background-tertiary: #f2f0ed;
+  --foreground: #2d2a26;
+  --foreground-secondary: #5c5854;
+  --foreground-muted: #9a9590;
+  --border: #ebe8e4;
+  --border-subtle: #f5f3f0;
+
+  /* Accent colors - softer */
+  --accent-green: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #f87171;
+
+  /* Course colors - light mode (vibrant but soft) */
+  --cpsc: #7c3aed;
+  --cpsc-light: #a78bfa;
+  --cpsc-bg: #f5f3ff;
+  --cpsc-border: #ddd6fe;
+  --cpsc-glow: rgba(124, 58, 237, 0.1);
+
+  --ece: #0891b2;
+  --ece-light: #22d3ee;
+  --ece-bg: #ecfeff;
+  --ece-border: #a5f3fc;
+  --ece-glow: rgba(8, 145, 178, 0.1);
+
+  --meng: #ea580c;
+  --meng-light: #fb923c;
+  --meng-bg: #fff7ed;
+  --meng-border: #fed7aa;
+  --meng-glow: rgba(234, 88, 12, 0.1);
+
+  /* Exam colors */
+  --exam: #eab308;
+  --exam-bg: #fefce8;
+  --exam-border: #fde047;
+}
+
+.dark {
+  /* Dark mode - rich and warm */
+  --background: #0f0e0d;
+  --background-secondary: #1a1816;
+  --background-tertiary: #252320;
+  --foreground: #f5f4f3;
+  --foreground-secondary: #b5b3b0;
+  --foreground-muted: #757370;
+  --border: #2d2b28;
+  --border-subtle: #1f1d1b;
+
+  /* Course colors - dark mode (glowy) */
+  --cpsc: #a78bfa;
+  --cpsc-light: #c4b5fd;
+  --cpsc-bg: #1e1533;
+  --cpsc-border: #4c1d95;
+  --cpsc-glow: rgba(167, 139, 250, 0.15);
+
+  --ece: #22d3ee;
+  --ece-light: #67e8f9;
+  --ece-bg: #0c1f24;
+  --ece-border: #0e7490;
+  --ece-glow: rgba(34, 211, 238, 0.15);
+
+  --meng: #fb923c;
+  --meng-light: #fdba74;
+  --meng-bg: #1c1209;
+  --meng-border: #9a3412;
+  --meng-glow: rgba(251, 146, 60, 0.15);
+
+  /* Exam colors */
+  --exam: #facc15;
+  --exam-bg: #1c1a0a;
+  --exam-border: #854d0e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
+  --color-background-tertiary: var(--background-tertiary);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+
+  --color-cpsc: var(--cpsc);
+  --color-cpsc-light: var(--cpsc-light);
+  --color-cpsc-bg: var(--cpsc-bg);
+  --color-cpsc-border: var(--cpsc-border);
+  --color-cpsc-glow: var(--cpsc-glow);
+
+  --color-ece: var(--ece);
+  --color-ece-light: var(--ece-light);
+  --color-ece-bg: var(--ece-bg);
+  --color-ece-border: var(--ece-border);
+  --color-ece-glow: var(--ece-glow);
+
+  --color-meng: var(--meng);
+  --color-meng-light: var(--meng-light);
+  --color-meng-bg: var(--meng-bg);
+  --color-meng-border: var(--meng-border);
+  --color-meng-glow: var(--meng-glow);
+
+  --color-exam: var(--exam);
+  --color-exam-bg: var(--exam-bg);
+  --color-exam-border: var(--exam-border);
+
+  --color-accent-green: var(--accent-green);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-red: var(--accent-red);
+
+  --font-louize: 'Louize', Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-louize);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground-muted);
+}
+
+/* Checkbox animation */
+.checkbox-done {
+  animation: checkmark 0.3s ease-out forwards;
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Soft glow effect for cards */
+.glow-cpsc {
+  box-shadow: 0 0 20px var(--cpsc-glow), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.glow-ece {
+  box-shadow: 0 0 20px var(--ece-glow), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.glow-meng {
+  box-shadow: 0 0 20px var(--meng-glow), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Subtle hover lift effect */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.dark .hover-lift:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Focus styles - softer */
+input:focus, textarea:focus, button:focus-visible {
+  outline: 2px solid var(--cpsc-light);
+  outline-offset: 2px;
+}
+
+/* Textarea styling */
+textarea {
+  field-sizing: content;
+  min-height: 72px;
+  max-height: 180px;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, var(--cpsc) 0%, var(--ece) 50%, var(--meng) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth card backgrounds */
+.card-soft {
+  background: linear-gradient(180deg, var(--background) 0%, var(--background-secondary) 100%);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Global button styles - neumorphic with hover animations */
+button {
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+/* Neumorphic button style */
+.btn-neu {
+  background: var(--background-secondary);
+  border: 1px solid var(--border);
+  box-shadow:
+    3px 3px 6px rgba(0, 0, 0, 0.06),
+    -2px -2px 5px rgba(255, 255, 255, 0.8);
+}
+
+.dark .btn-neu {
+  box-shadow:
+    3px 3px 6px rgba(0, 0, 0, 0.3),
+    -2px -2px 5px rgba(255, 255, 255, 0.03);
+}
+
+.btn-neu:hover {
+  box-shadow:
+    5px 5px 10px rgba(0, 0, 0, 0.08),
+    -3px -3px 8px rgba(255, 255, 255, 0.9);
+}
+
+.dark .btn-neu:hover {
+  box-shadow:
+    5px 5px 10px rgba(0, 0, 0, 0.4),
+    -3px -3px 8px rgba(255, 255, 255, 0.05);
+}
+
+.btn-neu:active {
+  box-shadow:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.06),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.7);
+}
+
+.dark .btn-neu:active {
+  box-shadow:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.3),
+    inset -1px -1px 3px rgba(255, 255, 255, 0.02);
+}
+
+/* Soft press animation for interactive elements */
+.press-effect {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.press-effect:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.press-effect:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Glow hover for primary actions */
+.hover-glow:hover {
+  box-shadow: 0 0 20px var(--cpsc-glow), 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.dark .hover-glow:hover {
+  box-shadow: 0 0 25px var(--cpsc-glow), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Ripple effect base */
+button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  background: radial-gradient(circle at center, var(--cpsc-light) 0%, transparent 70%);
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+button:active::after {
+  opacity: 0.15;
+}
